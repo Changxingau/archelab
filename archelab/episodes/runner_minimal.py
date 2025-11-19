@@ -1,9 +1,9 @@
 import uuid
 from typing import Any, Dict, Tuple
 
-from env_core.environment import Environment
-from logging_utils.episode_recorder import EpisodeRecorder
-from models.episode_result import EpisodeResult, AttackType
+from ..env_core.environment import Environment
+from ..logging_utils.episode_recorder import EpisodeRecorder
+from ..models.episode_result import EpisodeResult, AttackType
 
 
 def generate_episode_id() -> str:

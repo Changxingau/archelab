@@ -1,0 +1,16 @@
+[project]
+name = "archelab"
+version = "0.1.0"
+description = "Minimal MAS security experiment orchestrator for ArcheRisk"
+authors = [
+    { name="Lemontreeran", email="ran.xing@gmail.com" }
+]
+requires-python = ">=3.9"
+
+dependencies = [
+    # Add real dependencies later if needed
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
