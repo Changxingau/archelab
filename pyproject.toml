@@ -11,6 +11,15 @@ dependencies = [
     # Add real dependencies later if needed
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+]
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["archelab/tests"]
+pythonpath = ["."]

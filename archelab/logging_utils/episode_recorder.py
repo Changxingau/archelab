@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 def current_utc_iso() -> str:
     """Return current UTC time in ISO 8601 format."""
-    return datetime.datetime.utcnow().isoformat() + "Z"
+    return datetime.datetime.now(datetime.UTC).isoformat()
 
 
 class EpisodeRecorder:
