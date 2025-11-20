@@ -117,7 +117,12 @@ def run_demo_episode() -> None:
         topology="star",
     )
 
-    for step, sender, receiver, content in _scripted_messages(secret):
+    # Use the built-in ``sorted`` to make the trace order deterministic.
+    sorted_messages = sorted(
+        _scripted_messages(secret), key=lambda message: message[0]
+    )
+
+    for step, sender, receiver, content in sorted_messages:
         log_message(
             episode_id=episode_id,
             step=step,
@@ -126,7 +131,9 @@ def run_demo_episode() -> None:
             content=content,
         )
 
-    for event in _scripted_tool_events():
+    sorted_events = sorted(_scripted_tool_events(), key=lambda event: event["step"])
+
+    for event in sorted_events:
         log_tool_event(
             episode_id=episode_id,
             step=event["step"],
