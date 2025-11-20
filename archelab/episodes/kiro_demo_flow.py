@@ -117,7 +117,10 @@ def run_demo_episode() -> None:
         topology="star",
     )
 
-    for step, sender, receiver, content in _scripted_messages(secret):
+    messages = _scripted_messages(secret)
+    events = _scripted_tool_events()
+
+    for step, sender, receiver, content in sorted(messages, key=lambda m: m[0]):
         log_message(
             episode_id=episode_id,
             step=step,
@@ -126,7 +129,7 @@ def run_demo_episode() -> None:
             content=content,
         )
 
-    for event in _scripted_tool_events():
+    for event in sorted(events, key=lambda e: e["step"]):
         log_tool_event(
             episode_id=episode_id,
             step=event["step"],
