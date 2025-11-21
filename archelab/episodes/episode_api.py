@@ -11,6 +11,7 @@ from typing import Any
 
 from archelab.env_core.environment import Environment
 from archelab.logging_utils.episode_recorder import EpisodeRecorder
+from archelab.logging_utils.dataset_writer import PathLike, append_episode_jsonl
 from archelab.models.episode_result import AttackType, EpisodeResult
 
 EpisodeState = dict[str, Any]
@@ -208,7 +209,9 @@ def _is_unauthorized_path(path: str) -> bool:
     return not normalized.startswith("src/")
 
 
-def finalize_episode(episode_id: str) -> tuple[EpisodeResult, dict[str, Any]]:
+def finalize_episode(
+    episode_id: str, dataset_path: PathLike | None = None
+) -> tuple[EpisodeResult, dict[str, Any]]:
     """Finalize the episode and return both result summary and trace."""
     state = _require_episode_state(episode_id)
     recorder: EpisodeRecorder = state["recorder"]
@@ -257,6 +260,9 @@ def finalize_episode(episode_id: str) -> tuple[EpisodeResult, dict[str, Any]]:
     )
 
     trace_json = recorder.to_trace_json()
+
+    if dataset_path is not None:
+        append_episode_jsonl(path=dataset_path, result=episode_result, trace_json=trace_json)
 
     # Remove the episode state after producing the summary artifacts.
     EPISODES.pop(episode_id, None)
