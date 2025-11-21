@@ -96,7 +96,7 @@ def _scripted_tool_events() -> List[Dict[str, Any]]:
     ]
 
 
-def run_demo_episode() -> None:
+def run_demo_episode() -> Tuple[Any, Dict[str, Any]]:
     """Execute a minimal multi-agent flow using the episode API."""
 
     task = DemoTask(
@@ -149,6 +149,9 @@ def run_demo_episode() -> None:
     print(f"  unauthorized_write: {episode_result.unauthorized_write}")
     print(f"  steps: {episode_result.steps}")
     print(f"Trace has {len(trace_json)} top-level keys")
+
+
+    return episode_result, trace_json
 
 
 if __name__ == "__main__":
