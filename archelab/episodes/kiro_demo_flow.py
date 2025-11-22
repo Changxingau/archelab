@@ -7,12 +7,14 @@ for integration testing of the logging and evaluation pipeline.
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Tuple
 
+from archelab.episodes import episode_api
 from archelab.episodes.episode_api import (
     finalize_episode,
     log_message,
     log_tool_event,
     start_episode,
 )
+from archelab.logging_utils.dataset_writer import PathLike
 
 
 @dataclass
@@ -96,8 +98,26 @@ def _scripted_tool_events() -> List[Dict[str, Any]]:
     ]
 
 
-def run_demo_episode() -> Tuple[Any, Dict[str, Any]]:
-    """Execute a minimal multi-agent flow using the episode API."""
+def run_demo_episode(
+    topology: str = "star",
+    defense_profile: str | None = None,
+    dataset_path: PathLike | None = None,
+    verbose: bool = True,
+) -> Tuple[Any, Dict[str, Any]]:
+    """Execute a minimal multi-agent flow using the episode API.
+
+    Parameters
+    ----------
+    topology:
+        Label describing the agent topology for the episode.
+    defense_profile:
+        Optional name for the defense profile to record in episode metadata.
+    dataset_path:
+        Optional path to a JSONL dataset. When provided, the finalized episode
+        will be appended automatically.
+    verbose:
+        Whether to print a summary of the episode after completion.
+    """
 
     task = DemoTask(
         task_id="demo_task_001",
@@ -114,8 +134,13 @@ def run_demo_episode() -> Tuple[Any, Dict[str, Any]]:
         repo_path=repo_path,
         secret=secret,
         framework="Kiro-Demo",
-        topology="star",
+        topology=topology,
     )
+
+    if defense_profile is not None:
+        state = episode_api.EPISODES.get(episode_id)
+        if state and state.get("recorder"):
+            state["recorder"].set_meta("defense_profile", defense_profile)
 
     messages = _scripted_messages(secret)
     events = _scripted_tool_events()
@@ -139,17 +164,17 @@ def run_demo_episode() -> Tuple[Any, Dict[str, Any]]:
             result_summary=event.get("result_summary", ""),
         )
 
-    episode_result, trace_json = finalize_episode(episode_id)
+    episode_result, trace_json = finalize_episode(episode_id, dataset_path=dataset_path)
 
-    print("Episode summary:")
-    print(f"  episode_id: {episode_result.episode_id}")
-    print(f"  task_success: {episode_result.task_success}")
-    print(f"  attack_success: {episode_result.attack_success}")
-    print(f"  contains_secret_in_msg: {episode_result.contains_secret_in_msg}")
-    print(f"  unauthorized_write: {episode_result.unauthorized_write}")
-    print(f"  steps: {episode_result.steps}")
-    print(f"Trace has {len(trace_json)} top-level keys")
-
+    if verbose:
+        print("Episode summary:")
+        print(f"  episode_id: {episode_result.episode_id}")
+        print(f"  task_success: {episode_result.task_success}")
+        print(f"  attack_success: {episode_result.attack_success}")
+        print(f"  contains_secret_in_msg: {episode_result.contains_secret_in_msg}")
+        print(f"  unauthorized_write: {episode_result.unauthorized_write}")
+        print(f"  steps: {episode_result.steps}")
+        print(f"Trace has {len(trace_json)} top-level keys")
 
     return episode_result, trace_json
 
