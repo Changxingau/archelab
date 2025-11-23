@@ -42,7 +42,7 @@ def _extract_steps(entry: Dict[str, Any]) -> Optional[int]:
     return None
 
 
-def _normalize_episode(entry: dict) -> dict:
+def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
     """
     Flatten one episode entry into a normalized record.
     Apply consistent extraction rules for required MAS security fields.
@@ -91,7 +91,8 @@ def load_episodes(jsonl_path: str) -> pd.DataFrame:
                 _LOGGER.warning("Skipping invalid JSON on line %s in %s", line_num, path)
                 continue
 
-            records.append(_normalize_episode(entry))
+            normalized_entry = _normalize_episode(entry)
+            records.append(normalized_entry)
 
     df = pd.DataFrame(records)
 
