@@ -49,19 +49,37 @@ def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
     Compatible with older schema versions (meta vs extra_metadata).
     """
 
-    record: Dict[str, Any] = {
-        "episode_id": entry.get("episode_id"),
-        "attacker_profile": entry.get("attacker_profile"),
-        "behavior_archetype": entry.get("behavior_archetype"),
-        "topology": entry.get("topology"),
-        "defense_profile": entry.get("defense_profile"),
-        "task_success": entry.get("task_success"),
-        "attack_success": entry.get("attack_success"),
-        "unauthorized_write": entry.get("unauthorized_write"),
-        "contains_secret_in_msg": entry.get("contains_secret_in_msg"),
-        "steps": _extract_steps(entry),
-        "extra_metadata": entry.get("extra_metadata") or entry.get("meta"),
-    }
+    record: Dict[str, Any] = {}
+
+    extra_metadata = entry.get("extra_metadata") or entry.get("meta") or {}
+
+    record["episode_id"] = entry.get("episode_id")
+    record["topology"] = entry.get("topology")
+    record["defense_profile"] = entry.get("defense_profile")
+    record["task_success"] = entry.get("task_success")
+    record["attack_success"] = entry.get("attack_success")
+    record["unauthorized_write"] = entry.get("unauthorized_write")
+    record["contains_secret_in_msg"] = entry.get("contains_secret_in_msg")
+    record["steps"] = _extract_steps(entry)
+    record["extra_metadata"] = extra_metadata if extra_metadata else None
+
+    attacker_profile = entry.get("attacker_profile")
+    behavior_archetype = entry.get("behavior_archetype")
+
+    if attacker_profile is None and isinstance(extra_metadata, dict):
+        attacker_profile = (
+            extra_metadata.get("attacker_profile")
+            or extra_metadata.get("config", {}).get("attacker_profile")
+        )
+
+    if behavior_archetype is None and isinstance(extra_metadata, dict):
+        behavior_archetype = (
+            extra_metadata.get("behavior_archetype")
+            or extra_metadata.get("config", {}).get("behavior_archetype")
+        )
+
+    record["attacker_profile"] = attacker_profile
+    record["behavior_archetype"] = behavior_archetype
 
     # Preserve any additional top-level fields for future exploration.
     for key, value in entry.items():
