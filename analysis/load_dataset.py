@@ -49,10 +49,10 @@ def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
     Compatible with older schema versions (meta vs extra_metadata).
     """
 
+    extra = entry.get("extra_metadata") or entry.get("meta") or {}
+
     record: Dict[str, Any] = {
         "episode_id": entry.get("episode_id"),
-        "attacker_profile": entry.get("attacker_profile"),
-        "behavior_archetype": entry.get("behavior_archetype"),
         "topology": entry.get("topology"),
         "defense_profile": entry.get("defense_profile"),
         "task_success": entry.get("task_success"),
@@ -60,8 +60,24 @@ def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
         "unauthorized_write": entry.get("unauthorized_write"),
         "contains_secret_in_msg": entry.get("contains_secret_in_msg"),
         "steps": _extract_steps(entry),
-        "extra_metadata": entry.get("extra_metadata") or entry.get("meta"),
+        "extra_metadata": extra if extra else None,
     }
+
+    attacker_profile = entry.get("attacker_profile")
+    behavior_archetype = entry.get("behavior_archetype")
+
+    if attacker_profile is None and isinstance(extra, dict):
+        attacker_profile = extra.get("attacker_profile") or extra.get("config", {}).get(
+            "attacker_profile"
+        )
+
+    if behavior_archetype is None and isinstance(extra, dict):
+        behavior_archetype = extra.get("behavior_archetype") or extra.get("config", {}).get(
+            "behavior_archetype"
+        )
+
+    record["attacker_profile"] = attacker_profile
+    record["behavior_archetype"] = behavior_archetype
 
     # Preserve any additional top-level fields for future exploration.
     for key, value in entry.items():
