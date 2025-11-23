@@ -87,6 +87,9 @@ def start_episode(
         "contains_secret_in_msg": False,
         "unauthorized_write": False,
         "tests_passed": False,
+        "defense_enabled": False,
+        "defense_profile": None,
+        "defense_summary": {},
     }
 
     return episode_id
@@ -257,6 +260,9 @@ def finalize_episode(
         contains_secret_in_msg=contains_secret_in_msg,
         unauthorized_write=unauthorized_write,
         steps=steps,
+        defense_enabled=bool(state.get("defense_enabled")),
+        defense_profile=state.get("defense_profile"),
+        defense_summary=state.get("defense_summary") or {},
     )
 
     trace_json = recorder.to_trace_json()
