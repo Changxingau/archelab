@@ -13,6 +13,21 @@ import pandas as pd
 _LOGGER = logging.getLogger(__name__)
 
 
+REQUIRED_COLUMNS = [
+    "episode_id",
+    "attacker_profile",
+    "behavior_archetype",
+    "topology",
+    "defense_profile",
+    "task_success",
+    "attack_success",
+    "unauthorized_write",
+    "contains_secret_in_msg",
+    "steps",
+    "extra_metadata",
+]
+
+
 def _extract_steps(entry: Dict[str, Any]) -> Optional[int]:
     """Return the number of steps for the given episode entry."""
 
@@ -25,6 +40,34 @@ def _extract_steps(entry: Dict[str, Any]) -> Optional[int]:
         if isinstance(messages, list):
             return len(messages)
     return None
+
+
+def _normalize_episode(entry: dict) -> dict:
+    """
+    Flatten one episode entry into a normalized record.
+    Apply consistent extraction rules for required MAS security fields.
+    Compatible with older schema versions (meta vs extra_metadata).
+    """
+
+    record: Dict[str, Any] = {
+        "episode_id": entry.get("episode_id"),
+        "attacker_profile": entry.get("attacker_profile"),
+        "behavior_archetype": entry.get("behavior_archetype"),
+        "topology": entry.get("topology"),
+        "defense_profile": entry.get("defense_profile"),
+        "task_success": entry.get("task_success"),
+        "attack_success": entry.get("attack_success"),
+        "unauthorized_write": entry.get("unauthorized_write"),
+        "contains_secret_in_msg": entry.get("contains_secret_in_msg"),
+        "steps": _extract_steps(entry),
+        "extra_metadata": entry.get("extra_metadata") or entry.get("meta"),
+    }
+
+    # Preserve any additional top-level fields for future exploration.
+    for key, value in entry.items():
+        record.setdefault(key, value)
+
+    return record
 
 
 def load_episodes(jsonl_path: str) -> pd.DataFrame:
@@ -48,47 +91,15 @@ def load_episodes(jsonl_path: str) -> pd.DataFrame:
                 _LOGGER.warning("Skipping invalid JSON on line %s in %s", line_num, path)
                 continue
 
-            record: Dict[str, Any] = {
-                "episode_id": entry.get("episode_id"),
-                "attacker_profile": entry.get("attacker_profile"),
-                "behavior_archetype": entry.get("behavior_archetype"),
-                "topology": entry.get("topology"),
-                "defense_profile": entry.get("defense_profile"),
-                "task_success": entry.get("task_success"),
-                "attack_success": entry.get("attack_success"),
-                "unauthorized_write": entry.get("unauthorized_write"),
-                "contains_secret_in_msg": entry.get("contains_secret_in_msg"),
-                "steps": _extract_steps(entry),
-                "extra_metadata": entry.get("extra_metadata") or entry.get("meta"),
-            }
-
-            # Preserve any additional top-level fields for future exploration.
-            for key, value in entry.items():
-                record.setdefault(key, value)
-
-            records.append(record)
+            records.append(_normalize_episode(entry))
 
     df = pd.DataFrame(records)
 
-    required_columns = [
-        "episode_id",
-        "attacker_profile",
-        "behavior_archetype",
-        "topology",
-        "defense_profile",
-        "task_success",
-        "attack_success",
-        "unauthorized_write",
-        "contains_secret_in_msg",
-        "steps",
-        "extra_metadata",
-    ]
-
-    for col in required_columns:
+    for col in REQUIRED_COLUMNS:
         if col not in df.columns:
             df[col] = None
 
-    return df[required_columns + [c for c in df.columns if c not in required_columns]]
+    return df[REQUIRED_COLUMNS + [c for c in df.columns if c not in REQUIRED_COLUMNS]]
 
 
 if __name__ == "__main__":
