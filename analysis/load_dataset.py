@@ -49,7 +49,12 @@ def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
     Compatible with older schema versions (meta vs extra_metadata).
     """
 
-    extra = entry.get("extra_metadata") or entry.get("meta") or {}
+    extra = (
+        entry.get("extra_metadata")
+        or entry.get("meta")
+        or entry.get("trace", {}).get("meta")
+        or {}
+    )
 
     record: Dict[str, Any] = {
         "episode_id": entry.get("episode_id"),
