@@ -100,7 +100,8 @@ def load_episodes(jsonl_path: str) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = None
 
-    return df[REQUIRED_COLUMNS + [c for c in df.columns if c not in REQUIRED_COLUMNS]]
+    column_order = REQUIRED_COLUMNS + [c for c in df.columns if c not in REQUIRED_COLUMNS]
+    return df[column_order]
 
 
 if __name__ == "__main__":
