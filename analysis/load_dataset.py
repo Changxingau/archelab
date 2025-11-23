@@ -42,7 +42,7 @@ def _extract_steps(entry: Dict[str, Any]) -> Optional[int]:
     return None
 
 
-def _normalize_episode(entry: dict) -> dict:
+def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
     """
     Flatten one episode entry into a normalized record.
     Apply consistent extraction rules for required MAS security fields.
@@ -99,7 +99,9 @@ def load_episodes(jsonl_path: str) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = None
 
-    return df[REQUIRED_COLUMNS + [c for c in df.columns if c not in REQUIRED_COLUMNS]]
+    column_order = REQUIRED_COLUMNS + [c for c in df.columns if c not in REQUIRED_COLUMNS]
+
+    return df[column_order]
 
 
 if __name__ == "__main__":
