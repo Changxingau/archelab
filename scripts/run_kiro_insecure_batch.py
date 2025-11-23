@@ -8,8 +8,20 @@ from pathlib import Path
 
 from kiro_integrations.kiro_orchestrator import run_single_insecure_episode
 
-VALID_PROFILES = {"direct_leak", "backdoor_dropper", "mixed"}
-DEFAULT_PROFILES = ["direct_leak", "backdoor_dropper", "mixed"]
+VALID_PROFILES = {
+    "direct_leak",
+    "backdoor_dropper",
+    "deceiver",
+    "escalator",
+    "mixed",
+}
+DEFAULT_PROFILES = [
+    "direct_leak",
+    "backdoor_dropper",
+    "deceiver",
+    "escalator",
+    "mixed",
+]
 
 
 def _parse_args() -> argparse.Namespace:
@@ -50,7 +62,7 @@ def _parse_args() -> argparse.Namespace:
         default=",".join(DEFAULT_PROFILES),
         help=(
             "Comma-separated attacker profiles to cycle through. "
-            "Valid options: direct_leak, backdoor_dropper, mixed."
+            "Valid options: " + ", ".join(sorted(VALID_PROFILES)) + "."
         ),
     )
     return parser.parse_args()
