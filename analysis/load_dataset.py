@@ -49,7 +49,10 @@ def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
     Compatible with older schema versions (meta vs extra_metadata).
     """
 
-    extra = entry.get("extra_metadata") or entry.get("meta") or {}
+    trace = entry.get("trace")
+    trace_meta = trace.get("meta") if isinstance(trace, dict) else None
+
+    extra = entry.get("extra_metadata") or entry.get("meta") or trace_meta or {}
 
     record: Dict[str, Any] = {
         "episode_id": entry.get("episode_id"),
@@ -71,10 +74,20 @@ def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
             "attacker_profile"
         )
 
+    if attacker_profile is None and isinstance(trace_meta, dict):
+        attacker_profile = trace_meta.get("attacker_profile") or trace_meta.get(
+            "config", {}
+        ).get("attacker_profile")
+
     if behavior_archetype is None and isinstance(extra, dict):
         behavior_archetype = extra.get("behavior_archetype") or extra.get("config", {}).get(
             "behavior_archetype"
         )
+
+    if behavior_archetype is None and isinstance(trace_meta, dict):
+        behavior_archetype = trace_meta.get("behavior_archetype") or trace_meta.get(
+            "config", {}
+        ).get("behavior_archetype")
 
     record["attacker_profile"] = attacker_profile
     record["behavior_archetype"] = behavior_archetype
