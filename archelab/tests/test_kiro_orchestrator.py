@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from kiro_integrations.kiro_orchestrator import run_single_insecure_episode
@@ -39,3 +40,35 @@ def test_mixed_profile(tmp_path: Path) -> None:
     assert result["unauthorized_write"] is True
     assert result["attack_success"] is True
     assert trace["meta"]["attacker_profile"] == "mixed"
+
+
+def test_behavior_archetype_mapping(tmp_path: Path) -> None:
+    profiles = {
+        "direct_leak": "manipulator",
+        "backdoor_dropper": "covert_actor",
+        "deceiver": "deceiver",
+        "escalator": "infiltrator_escalator",
+        "mixed": "manipulator+covert_actor",
+    }
+
+    for profile, archetype in profiles.items():
+        _, trace = _run_episode(tmp_path, profile)
+
+        assert trace["meta"]["attacker_profile"] == profile
+        assert trace["meta"]["behavior_archetype"] == archetype
+
+
+def test_jsonl_includes_behavior_archetype(tmp_path: Path) -> None:
+    profile = "deceiver"
+    archetype = "deceiver"
+    path = tmp_path / f"{profile}.jsonl"
+
+    _run_episode(tmp_path, profile)
+
+    with path.open() as f:
+        row = f.readline()
+
+    meta = json.loads(row).get("trace", {}).get("meta", {})
+
+    assert meta.get("attacker_profile") == profile
+    assert meta.get("behavior_archetype") == archetype
