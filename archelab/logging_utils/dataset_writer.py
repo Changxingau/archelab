@@ -18,6 +18,25 @@ from archelab.models.episode_result import EpisodeResult
 PathLike = Union[str, Path]
 
 
+def episode_result_to_row(result: EpisodeResult) -> Dict[str, Any]:
+    """Convert an ``EpisodeResult`` into a flat, CSV-friendly row.
+
+    Defense metadata is expanded into dedicated columns while preserving the
+    original fields for backward compatibility.
+    """
+
+    row = asdict(result)
+
+    summary = result.defense_summary or {}
+    row["defense_enabled"] = bool(result.defense_enabled)
+    row["defense_profile"] = result.defense_profile or "none"
+    row["defense_redacted_leaks"] = int(summary.get("redacted_leaks", 0))
+    row["defense_blocked_writes"] = int(summary.get("blocked_writes", 0))
+    row["defense_generic_refusals"] = int(summary.get("generic_refusals", 0))
+
+    return row
+
+
 def append_episode_jsonl(path: PathLike, result: EpisodeResult, trace_json: Dict[str, Any]) -> None:
     """Append a single episode to a JSONL file.
 
@@ -59,10 +78,16 @@ def write_episodes_csv(path: PathLike, results: Iterable[EpisodeResult]) -> None
     target_path = Path(path)
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
-    field_names = [field.name for field in fields(EpisodeResult) if not field.name.startswith("_")]
+    base_fields = [field.name for field in fields(EpisodeResult) if not field.name.startswith("_")]
+    extra_fields = [
+        "defense_redacted_leaks",
+        "defense_blocked_writes",
+        "defense_generic_refusals",
+    ]
+    field_names = base_fields + extra_fields
 
     with target_path.open("w", encoding="utf-8", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
         writer.writeheader()
         for result in results:
-            writer.writerow(asdict(result))
+            writer.writerow(episode_result_to_row(result))

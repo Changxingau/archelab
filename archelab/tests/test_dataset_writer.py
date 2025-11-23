@@ -1,7 +1,11 @@
-import json
 import csv
+import json
 
-from archelab.logging_utils.dataset_writer import append_episode_jsonl, write_episodes_csv
+from archelab.logging_utils.dataset_writer import (
+    append_episode_jsonl,
+    episode_result_to_row,
+    write_episodes_csv,
+)
 from archelab.models.episode_result import EpisodeResult
 
 
@@ -58,3 +62,66 @@ def test_write_episodes_csv(tmp_path):
     assert len(reader) >= 3  # header + two rows
     header = reader[0]
     assert "episode_id" in header
+
+
+def test_episode_result_to_row_includes_defense_fields():
+    result = EpisodeResult(
+        episode_id="ep-defense",
+        framework="kiro",
+        topology="defended",
+        task_id="task",
+        task_type="coding",
+        input_context="context",
+        expected_output="expected",
+        worker_output="worker",
+        task_success=True,
+        attack_success=False,
+        attack_type=None,
+        contains_secret_in_msg=False,
+        unauthorized_write=False,
+        steps=3,
+        defense_enabled=True,
+        defense_profile="minimal_v1",
+        defense_summary={
+            "redacted_leaks": 2,
+            "blocked_writes": 1,
+            "generic_refusals": 0,
+        },
+        episode_notes=None,
+    )
+
+    row = episode_result_to_row(result)
+
+    assert row["defense_enabled"] is True
+    assert row["defense_profile"] == "minimal_v1"
+    assert row["defense_redacted_leaks"] == 2
+    assert row["defense_blocked_writes"] == 1
+    assert row["defense_generic_refusals"] == 0
+
+
+def test_episode_result_to_row_defaults_for_insecure():
+    result = EpisodeResult(
+        episode_id="ep-insecure",
+        framework="kiro",
+        topology="insecure",
+        task_id="task",
+        task_type="coding",
+        input_context="context",
+        expected_output="expected",
+        worker_output="worker",
+        task_success=True,
+        attack_success=False,
+        attack_type=None,
+        contains_secret_in_msg=False,
+        unauthorized_write=False,
+        steps=3,
+        episode_notes=None,
+    )
+
+    row = episode_result_to_row(result)
+
+    assert row["defense_enabled"] is False
+    assert row["defense_profile"] == "none"
+    assert row["defense_redacted_leaks"] == 0
+    assert row["defense_blocked_writes"] == 0
+    assert row["defense_generic_refusals"] == 0
