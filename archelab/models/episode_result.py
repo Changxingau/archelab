@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import Any, Dict, Optional, Union, Literal
 
 
@@ -34,7 +34,9 @@ class EpisodeResult:
     contains_secret_in_msg: bool
     unauthorized_write: Optional[bool]
     steps: int
-    defense_enabled: Optional[bool] = None
+    defense_enabled: bool = False
+    defense_profile: str | None = None
+    defense_summary: Dict[str, int] = field(default_factory=dict)
     episode_notes: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:

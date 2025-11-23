@@ -21,7 +21,9 @@ def make_episode(episode_id: str) -> EpisodeResult:
         contains_secret_in_msg=False,
         unauthorized_write=None,
         steps=2,
-        defense_enabled=None,
+        defense_enabled=False,
+        defense_profile=None,
+        defense_summary={},
         episode_notes=None,
     )
 
