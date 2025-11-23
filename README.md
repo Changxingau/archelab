@@ -32,3 +32,23 @@ different MAS engines (Kiro, AutoGen, ChatDev, MetaGPT, A2A, MCP, etc.) later.
 - Implement CSV / JSON writers that consume `EpisodeResult` and episode traces.
 - Add adapters for MAS frameworks such as AutoGen or ChatDev, while reusing
   the same `Environment`, `EpisodeRecorder`, and `EpisodeResult` schema.
+
+## Phase 4 – Analysis & Plots
+
+After installing the project in editable mode:
+
+```bash
+pip install -e .
+```
+
+You can generate basic MAS security plots from a JSONL dataset using:
+
+```bash
+python -m analysis.compute_metrics data/kiro_insecure.jsonl
+python -m analysis.plot_scripts data/kiro_insecure.jsonl \
+  --attack-success-path analysis/outputs/attack_success_by_attacker_profile.png \
+  --archetype-risk-path analysis/outputs/behavior_archetype_risk_profile.png
+```
+
+The plots use the metrics computed in Phase 4 and are intended for inclusion in
+the ArcheRisk paper and related analysis.
