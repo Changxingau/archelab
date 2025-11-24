@@ -255,9 +255,9 @@ def finalize_episode(
         "generic_refusals": int(defense_summary_state.get("generic_refusals", 0)),
     }
 
-    attacker_profile = state.get("attacker_profile")
+    attacker_profile = state.get("attacker_profile") or recorder.meta.get("attacker_profile")
     if attacker_profile is None:
-        attacker_profile = recorder.meta.get("attacker_profile") or "unknown"
+        attacker_profile = "unknown"
 
     behavior_archetype = state.get("behavior_archetype")
     if behavior_archetype is None:
