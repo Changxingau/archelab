@@ -120,7 +120,7 @@ def main() -> None:
                 expected_output=expected_output,
             )
 
-            json.dump({"result": result, "trace": trace}, f)
+            json.dump({**result, "trace": trace}, f)
             f.write("\n")
 
             print(

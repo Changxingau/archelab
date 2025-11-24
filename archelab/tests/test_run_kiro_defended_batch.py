@@ -13,11 +13,10 @@ def test_generate_defended_episodes_basic_count():
 
     assert len(episodes) == 10
     for episode in episodes:
-        result = episode["result"]
-        assert result["topology"] == "defended"
-        assert result["defense_enabled"] is True
-        assert result["defense_profile"] == "test_profile"
-        summary = result.get("defense_summary") or {}
+        assert episode["topology"] == "defended"
+        assert episode["defense_enabled"] is True
+        assert episode["defense_profile"] == "test_profile"
+        summary = episode.get("defense_summary") or {}
         assert {
             "redacted_leaks",
             "blocked_writes",
@@ -37,5 +36,22 @@ def test_main_writes_jsonl(tmp_path):
 
     for line in lines:
         obj = json.loads(line)
-        assert obj["result"]["topology"] == "defended"
-        assert obj["result"]["defense_enabled"] is True
+        assert obj["topology"] == "defended"
+        assert obj["defense_enabled"] is True
+
+
+def test_defended_batch_writes_flat_jsonl(tmp_path):
+    out = tmp_path / "defended.jsonl"
+
+    exit_code = main(["-n", "2", "-o", str(out)])
+    assert exit_code == 0
+
+    lines = out.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 2
+
+    entry = json.loads(lines[0])
+    assert entry.get("topology") == "defended"
+    assert "attacker_profile" in entry
+    assert entry.get("defense_enabled") is True
+    assert "defense_summary" in entry
+    assert "trace" in entry and isinstance(entry["trace"], dict)
