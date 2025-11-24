@@ -6,7 +6,7 @@ import pytest
 
 pd = pytest.importorskip("pandas")
 
-from analysis.load_dataset import load_episodes
+from archelab.analysis.load_dataset import load_episodes
 
 
 def test_insecure_batch_writes_flat_jsonl(tmp_path: Path) -> None:

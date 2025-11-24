@@ -9,7 +9,7 @@ from typing import Optional, Sequence
 
 import pandas as pd
 
-from analysis.load_dataset import load_episodes
+from archelab.analysis.load_dataset import load_episodes
 
 _LOGGER = logging.getLogger(__name__)
 

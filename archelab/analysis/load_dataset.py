@@ -1,0 +1,169 @@
+"""Utilities for loading Archelab/Kiro JSONL datasets into pandas.
+
+This module provides the canonical implementation used by the packaged
+``archelab`` namespace. It is self-contained and does not depend on the
+repository-local ``analysis`` directory.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
+
+
+__all__ = ["load_dataset", "load_episodes", "REQUIRED_COLUMNS"]
+
+
+_LOGGER = logging.getLogger(__name__)
+
+
+REQUIRED_COLUMNS = [
+    "episode_id",
+    "attacker_profile",
+    "behavior_archetype",
+    "topology",
+    "defense_profile",
+    "task_success",
+    "attack_success",
+    "unauthorized_write",
+    "leakage",
+    "contains_secret_in_msg",
+    "steps",
+    "extra_metadata",
+]
+
+
+def _extract_steps(entry: Dict[str, Any]) -> Optional[int]:
+    """Return the number of steps for the given episode entry."""
+
+    if "steps" in entry:
+        return entry.get("steps")
+
+    trace = entry.get("trace")
+    if isinstance(trace, dict):
+        messages = trace.get("messages", [])
+        if isinstance(messages, list):
+            return len(messages)
+    return None
+
+
+def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Flatten one episode entry into a normalized record while remaining backwards compatible
+    with earlier metadata layouts.
+
+    The loader is intentionally tolerant of legacy fields (``meta`` vs ``extra_metadata``) so
+    the packaged implementation can be used for both new and historical datasets without
+    depending on the repository-local ``analysis`` shim.
+    """
+
+    trace = entry.get("trace")
+    trace_meta = trace.get("meta") if isinstance(trace, dict) else None
+
+    extra = entry.get("extra_metadata") or entry.get("meta") or trace_meta or {}
+
+    if "leakage" not in entry:
+        entry["leakage"] = bool(entry.get("contains_secret_in_msg", False))
+
+    record: Dict[str, Any] = {
+        "episode_id": entry.get("episode_id"),
+        "topology": entry.get("topology"),
+        "defense_profile": entry.get("defense_profile"),
+        "task_success": entry.get("task_success"),
+        "attack_success": entry.get("attack_success"),
+        "unauthorized_write": entry.get("unauthorized_write"),
+        "leakage": entry.get("leakage"),
+        "contains_secret_in_msg": entry.get("contains_secret_in_msg"),
+        "steps": _extract_steps(entry),
+        "extra_metadata": extra if extra else None,
+    }
+
+    attacker_profile = entry.get("attacker_profile")
+    behavior_archetype = entry.get("behavior_archetype")
+
+    if attacker_profile is None and isinstance(extra, dict):
+        attacker_profile = extra.get("attacker_profile") or extra.get("config", {}).get(
+            "attacker_profile"
+        )
+
+    if attacker_profile is None and isinstance(trace_meta, dict):
+        attacker_profile = trace_meta.get("attacker_profile") or trace_meta.get(
+            "config", {}
+        ).get("attacker_profile")
+
+    if behavior_archetype is None and isinstance(extra, dict):
+        behavior_archetype = extra.get("behavior_archetype") or extra.get("config", {}).get(
+            "behavior_archetype"
+        )
+
+    if behavior_archetype is None and isinstance(trace_meta, dict):
+        behavior_archetype = trace_meta.get("behavior_archetype") or trace_meta.get(
+            "config", {}
+        ).get("behavior_archetype")
+
+    record["attacker_profile"] = attacker_profile
+    record["behavior_archetype"] = behavior_archetype
+
+    # Preserve any additional top-level fields for future exploration.
+    for key, value in entry.items():
+        record.setdefault(key, value)
+
+    return record
+
+
+def load_episodes(jsonl_path: Path | str) -> pd.DataFrame:
+    """Load Archelab/Kiro JSONL episodes into a flat pandas DataFrame."""
+
+    path = Path(jsonl_path)
+    records: List[Dict[str, Any]] = []
+
+    with path.open("r", encoding="utf-8") as fh:
+        for line_num, line in enumerate(fh, start=1):
+            if not line.strip():
+                continue
+
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                _LOGGER.warning("Skipping invalid JSON on line %s in %s", line_num, path)
+                continue
+
+            normalized_entry = _normalize_episode(entry)
+            records.append(normalized_entry)
+
+    df = pd.DataFrame(records)
+
+    for col in REQUIRED_COLUMNS:
+        if col not in df.columns:
+            df[col] = None
+
+    column_order = REQUIRED_COLUMNS + [c for c in df.columns if c not in REQUIRED_COLUMNS]
+
+    return df[column_order]
+
+
+def load_dataset(jsonl_path: Path | str) -> List[Dict[str, Any]]:
+    """Return dataset rows as dictionaries for convenience in tests and notebooks."""
+
+    df = load_episodes(jsonl_path)
+    return df.to_dict("records")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
+
+    parser = argparse.ArgumentParser(description="Load Archelab/Kiro JSONL episodes.")
+    parser.add_argument("jsonl_path", help="Path to the JSONL dataset file")
+    args = parser.parse_args()
+
+    dataframe = load_episodes(args.jsonl_path)
+
+    print("DataFrame head:\n", dataframe.head())
+    if "attacker_profile" in dataframe.columns:
+        print("\nattacker_profile counts:\n", dataframe["attacker_profile"].value_counts())

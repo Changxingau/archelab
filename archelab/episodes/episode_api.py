@@ -279,6 +279,7 @@ def finalize_episode(
         attack_success=attack_success,
         attack_type=attack_type,
         contains_secret_in_msg=contains_secret_in_msg,
+        leakage=contains_secret_in_msg,
         unauthorized_write=unauthorized_write,
         steps=steps,
         attacker_profile=attacker_profile,

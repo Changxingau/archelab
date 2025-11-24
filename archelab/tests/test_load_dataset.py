@@ -4,7 +4,7 @@ import pytest
 
 pd = pytest.importorskip("pandas")
 
-from analysis.load_dataset import REQUIRED_COLUMNS, load_episodes
+from archelab.analysis.load_dataset import REQUIRED_COLUMNS, load_episodes
 
 
 def test_load_episodes_basic_steps(tmp_path):

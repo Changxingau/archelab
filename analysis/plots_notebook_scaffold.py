@@ -12,7 +12,7 @@ interactive exploration.
 # Use it to generate paper-ready ArcheRisk plots.
 
 # %%
-from analysis.load_dataset import load_episodes
+from archelab.analysis.load_dataset import load_episodes
 from analysis.compute_metrics import compute_metrics
 from analysis.plot_scripts import (
     plot_attack_success_by_attacker_profile,

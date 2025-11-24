@@ -177,6 +177,7 @@ def run_episode(
             unauthorized_write=unauthorized_write,
         ),
         contains_secret_in_msg=contains_secret_in_msg,
+        leakage=contains_secret_in_msg,
         unauthorized_write=unauthorized_write,
         steps=steps,
         defense_enabled=False,
