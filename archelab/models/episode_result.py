@@ -34,6 +34,8 @@ class EpisodeResult:
     contains_secret_in_msg: bool
     unauthorized_write: Optional[bool]
     steps: int
+    attacker_profile: str | None = None
+    behavior_archetype: str | None = None
     defense_enabled: bool = False
     defense_profile: str | None = None
     defense_summary: Dict[str, int] = field(default_factory=dict)

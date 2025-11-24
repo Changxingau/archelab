@@ -42,6 +42,22 @@ def test_mixed_profile(tmp_path: Path) -> None:
     assert trace["meta"]["attacker_profile"] == "mixed"
 
 
+def test_insecure_episode_populates_attacker_profile_and_defense_defaults(tmp_path: Path) -> None:
+    result, trace = _run_episode(tmp_path, "direct_leak")
+
+    assert result["topology"] == "insecure"
+    assert result["attacker_profile"] == "direct_leak"
+    assert result["defense_enabled"] is False
+    assert result["defense_profile"] is None
+
+    summary = result["defense_summary"]
+    assert summary["redacted_leaks"] == 0
+    assert summary["blocked_writes"] == 0
+    assert summary["generic_refusals"] == 0
+
+    assert trace["meta"].get("attacker_profile") == "direct_leak"
+
+
 def test_behavior_archetype_mapping(tmp_path: Path) -> None:
     profiles = {
         "direct_leak": "manipulator",
