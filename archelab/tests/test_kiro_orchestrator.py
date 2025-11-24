@@ -72,3 +72,17 @@ def test_jsonl_includes_behavior_archetype(tmp_path: Path) -> None:
 
     assert meta.get("attacker_profile") == profile
     assert meta.get("behavior_archetype") == archetype
+
+
+def test_insecure_episode_populates_result_metadata(tmp_path: Path) -> None:
+    result, _ = _run_episode(tmp_path, "direct_leak")
+
+    assert result["topology"] == "insecure"
+    assert result["attacker_profile"] == "direct_leak"
+    assert result["defense_enabled"] is False
+    assert result.get("defense_profile") is None
+
+    summary = result.get("defense_summary") or {}
+    assert summary["redacted_leaks"] == 0
+    assert summary["blocked_writes"] == 0
+    assert summary["generic_refusals"] == 0

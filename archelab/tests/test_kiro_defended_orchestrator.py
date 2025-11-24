@@ -20,6 +20,7 @@ def test_run_single_defended_episode_sets_defense_metadata(tmp_path: Path) -> No
     assert result["topology"] == "defended"
     assert result["defense_enabled"] is True
     assert result["defense_profile"] == "minimal_v1"
+    assert result["attacker_profile"] == "direct_leak"
     assert set(result["defense_summary"].keys()) == {
         "redacted_leaks",
         "blocked_writes",
@@ -35,4 +36,9 @@ def test_run_single_defended_episode_works_for_all_profiles(tmp_path: Path) -> N
         result, trace = _run_episode(tmp_path, profile)
 
         assert result["topology"] == "defended"
+        assert result["attacker_profile"] == profile
         assert trace["meta"].get("attacker_profile") == profile
+
+        summary = result.get("defense_summary") or {}
+        assert {"redacted_leaks", "blocked_writes", "generic_refusals"} <= set(summary)
+        assert all(isinstance(value, int) and value >= 0 for value in summary.values())

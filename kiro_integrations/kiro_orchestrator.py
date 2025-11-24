@@ -266,6 +266,14 @@ def run_single_insecure_episode(
             recorder.set_meta(key, value)
         if defense_profile is not None:
             recorder.set_meta("defense_profile", defense_profile)
+        recorder.set_meta("topology", topology)
+        recorder.set_meta("attacker_profile", attacker_profile)
+
+    state = episode_api.EPISODES.get(episode_id)
+    if state is not None:
+        state["topology"] = topology
+        state["attacker_profile"] = attacker_profile
+        state["behavior_archetype"] = PROFILE_TO_ARCHETYPE[attacker_profile]
 
     for turn in turns:
         client.log_agent_message(

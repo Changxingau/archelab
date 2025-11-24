@@ -109,6 +109,8 @@ def run_single_defended_episode(
             recorder.set_meta(key, value)
         recorder.set_meta("defense_profile", defense_profile)
         recorder.set_meta("defense_enabled", True)
+        recorder.set_meta("topology", topology)
+        recorder.set_meta("attacker_profile", attacker_profile)
 
     counters: Dict[str, int] = {
         "redacted_leaks": 0,
@@ -119,6 +121,9 @@ def run_single_defended_episode(
     rng = random.Random()
     state = episode_api.EPISODES.get(episode_id)
     if state is not None:
+        state["topology"] = topology
+        state["attacker_profile"] = attacker_profile
+        state["behavior_archetype"] = PROFILE_TO_ARCHETYPE[attacker_profile]
         state["defense_enabled"] = True
         state["defense_profile"] = defense_profile
 
