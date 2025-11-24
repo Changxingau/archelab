@@ -68,7 +68,7 @@ def generate_defended_episodes(
                 defense_config=defense_config,
             )
 
-            yield {"result": result_dict, "trace": trace_dict}
+            yield {**result_dict, "trace": trace_dict}
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
