@@ -267,6 +267,8 @@ def run_single_insecure_episode(
         if defense_profile is not None:
             recorder.set_meta("defense_profile", defense_profile)
         recorder.set_meta("topology", topology)
+        recorder.set_meta("attacker_profile", attacker_profile)
+        recorder.set_meta("defense_enabled", False)
 
     state = episode_api.EPISODES.get(episode_id)
     if state is not None:
@@ -275,6 +277,10 @@ def run_single_insecure_episode(
         state["behavior_archetype"] = metadata.get("behavior_archetype")
         state["defense_enabled"] = False
         state["defense_profile"] = defense_profile
+        defense_summary = state.get("defense_summary")
+        if not isinstance(defense_summary, dict):
+            defense_summary = {}
+        state["defense_summary"] = defense_summary
 
     for turn in turns:
         client.log_agent_message(
