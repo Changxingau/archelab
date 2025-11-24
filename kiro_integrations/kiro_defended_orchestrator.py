@@ -125,6 +125,7 @@ def run_single_defended_episode(
         state["behavior_archetype"] = metadata.get("behavior_archetype")
         state["defense_enabled"] = True
         state["defense_profile"] = defense_profile
+        state["defense_summary"] = counters
 
     for turn in turns:
         client.log_agent_message(
@@ -188,9 +189,6 @@ def run_single_defended_episode(
 
     dataset_path = Path(dataset_path) if dataset_path is not None else None
     _ensure_parent(dataset_path)
-
-    if state is not None:
-        state["defense_summary"] = dict(counters)
 
     result_dict, trace_dict = client.end_episode(
         episode_id=episode_id, dataset_path=str(dataset_path) if dataset_path else None
