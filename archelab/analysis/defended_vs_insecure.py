@@ -1,16 +1,15 @@
-"""Analysis helpers for comparing defended vs insecure datasets."""
+"""Phase 5.3 analysis for ArcheRisk: insecure vs defended comparisons."""
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Iterable, List
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from archelab.analysis.load_dataset import load_episodes
+from archelab.analysis.load_dataset import load_dataset
 
-REQUIRED_COLUMNS: List[str] = [
+REQUIRED_COLUMNS = [
     "topology",
     "attacker_profile",
     "task_success",
@@ -25,22 +24,37 @@ REQUIRED_COLUMNS: List[str] = [
 ]
 
 
-def _ensure_columns(df: pd.DataFrame, defaults: dict[str, object]) -> pd.DataFrame:
-    """Ensure the dataframe has all required columns with appropriate defaults."""
+def _prepare_dataframe(
+    records: list[dict[str, object]],
+    defaults: dict[str, object],
+    overrides: dict[str, object] | None = None,
+) -> pd.DataFrame:
+    """Create a dataframe from episode records and ensure required columns exist."""
+
+    df = pd.DataFrame(records)
+    overrides = overrides or {}
 
     for column in REQUIRED_COLUMNS:
+        if column in overrides:
+            df[column] = overrides[column]
+            continue
+
+        default_value = defaults.get(column)
         if column not in df.columns:
-            df[column] = defaults.get(column)
+            df[column] = default_value
+        else:
+            df[column] = df[column].fillna(default_value)
+
     return df[REQUIRED_COLUMNS + [c for c in df.columns if c not in REQUIRED_COLUMNS]]
 
 
 def load_combined(insecure_path: str, defended_path: str) -> pd.DataFrame:
     """Load insecure and defended datasets and combine them into one dataframe."""
 
-    insecure_df = load_episodes(insecure_path)
-    defended_df = load_episodes(defended_path)
+    insecure_records = load_dataset(insecure_path)
+    defended_records = load_dataset(defended_path)
 
-    insecure_defaults = {
+    insecure_defaults: dict[str, object] = {
         "topology": "insecure",
         "defense_enabled": False,
         "defense_profile": "none",
@@ -48,128 +62,109 @@ def load_combined(insecure_path: str, defended_path: str) -> pd.DataFrame:
         "defense_blocked_writes": 0,
         "defense_generic_refusals": 0,
     }
-    defended_defaults = {
+    defended_defaults: dict[str, object] = {
         "topology": "defended",
         "defense_enabled": True,
-        "defense_profile": "none",
+        "defense_profile": "minimal_v1",
         "defense_redacted_leaks": 0,
         "defense_blocked_writes": 0,
         "defense_generic_refusals": 0,
     }
 
-    insecure_df = _ensure_columns(insecure_df, insecure_defaults)
-    defended_df = _ensure_columns(defended_df, defended_defaults)
+    insecure_overrides = {
+        "topology": "insecure",
+        "defense_enabled": False,
+        "defense_profile": "none",
+    }
+    defended_overrides = {
+        "topology": "defended",
+        "defense_enabled": True,
+    }
+
+    insecure_df = _prepare_dataframe(
+        insecure_records, insecure_defaults, overrides=insecure_overrides
+    )
+    defended_df = _prepare_dataframe(
+        defended_records, defended_defaults, overrides=defended_overrides
+    )
 
     combined_df = pd.concat([insecure_df, defended_df], ignore_index=True)
     return combined_df
 
 
-def _safe_mean(series: pd.Series) -> float:
+def _mean(series: pd.Series) -> float:
     numeric = pd.to_numeric(series, errors="coerce")
-    return float(numeric.mean()) if not numeric.empty else float("nan")
+    return float(numeric.mean())
 
 
 def compute_profile_stats(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute per-profile statistics for insecure vs defended topologies."""
+    """Compute aggregated statistics per attacker profile and topology."""
 
-    grouped = df.groupby(["attacker_profile", "topology"])
-
-    stats = grouped.apply(
-        lambda group: pd.Series(
-            {
-                "attack_success_rate": _safe_mean(group["attack_success"]),
-                "leak_rate": _safe_mean(group["contains_secret_in_msg"]),
-                "unauthorized_write_rate": _safe_mean(group["unauthorized_write"]),
-                "task_success_rate": _safe_mean(group["task_success"]),
-            }
-        )
+    grouped = df.groupby(["attacker_profile", "topology"], dropna=False)
+    stats = grouped.agg(
+        n_episodes=("attack_success", "size"),
+        attack_success_rate=("attack_success", _mean),
+        leak_rate=("contains_secret_in_msg", _mean),
+        unauthorized_write_rate=("unauthorized_write", _mean),
+        task_success_rate=("task_success", _mean),
     )
-
-    stats = stats.reset_index()
-    stats = stats.sort_values(["attacker_profile", "topology"]).reset_index(drop=True)
-    return stats
+    return stats.reset_index()
 
 
-def _plot_rate(
-    stats_df: pd.DataFrame,
-    value_column: str,
-    ylabel: str,
-    output_path: str | Path,
-    title: str,
-) -> None:
-    """Plot a bar chart for the given rate column."""
+def plot_metric_bar(stats_df: pd.DataFrame, metric: str, output_path: str) -> None:
+    """Plot a metric comparing insecure vs defended per attacker profile."""
 
-    pivot = stats_df.pivot(
-        index="attacker_profile", columns="topology", values=value_column
-    )
-    # Ensure consistent column order
-    columns: Iterable[str] = [c for c in ["insecure", "defended"] if c in pivot.columns]
-    pivot = pivot[columns]
+    pivot = stats_df.pivot(index="attacker_profile", columns="topology", values=metric)
+    column_order = [col for col in ["insecure", "defended"] if col in pivot.columns]
+    pivot = pivot[column_order]
 
-    ax = pivot.plot(kind="bar", figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 6))
+    pivot.plot(kind="bar", ax=ax)
     ax.set_xlabel("Attacker Profile")
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
+    ax.set_ylabel(metric.replace("_", " ").title())
     ax.legend(title="Topology")
+    plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     plt.savefig(output_path)
-    plt.close()
+    plt.close(fig)
 
 
-def plot_attack_success(stats_df: pd.DataFrame, output_path: str | Path) -> None:
-    """Plot attack success rates by attacker profile."""
-
-    _plot_rate(
-        stats_df,
-        value_column="attack_success_rate",
-        ylabel="Attack Success Rate",
-        output_path=output_path,
-        title="Attack Success Rate by Attacker Profile",
-    )
+def plot_attack_success(stats_df: pd.DataFrame, output_path: str) -> None:
+    plot_metric_bar(stats_df, "attack_success_rate", output_path)
 
 
-def plot_leak_rate(stats_df: pd.DataFrame, output_path: str | Path) -> None:
-    """Plot leak rates by attacker profile."""
-
-    _plot_rate(
-        stats_df,
-        value_column="leak_rate",
-        ylabel="Leak Rate",
-        output_path=output_path,
-        title="Leak Rate by Attacker Profile",
-    )
+def plot_leak_rate(stats_df: pd.DataFrame, output_path: str) -> None:
+    plot_metric_bar(stats_df, "leak_rate", output_path)
 
 
-def plot_unauthorized_write(stats_df: pd.DataFrame, output_path: str | Path) -> None:
-    """Plot unauthorized write rates by attacker profile."""
-
-    _plot_rate(
-        stats_df,
-        value_column="unauthorized_write_rate",
-        ylabel="Unauthorized Write Rate",
-        output_path=output_path,
-        title="Unauthorized Write Rate by Attacker Profile",
-    )
+def plot_unauthorized_write(stats_df: pd.DataFrame, output_path: str) -> None:
+    plot_metric_bar(stats_df, "unauthorized_write_rate", output_path)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Compare defended vs insecure datasets by attacker profile."
+        description="Compare insecure vs defended datasets by attacker profile."
     )
     parser.add_argument("--insecure", required=True, help="Path to insecure JSONL file")
     parser.add_argument("--defended", required=True, help="Path to defended JSONL file")
-    parser.add_argument("--outdir", required=True, help="Directory to save plots")
+    parser.add_argument("--outdir", required=True, help="Output directory for plots")
 
     args = parser.parse_args()
 
-    outdir = Path(args.outdir)
-    outdir.mkdir(parents=True, exist_ok=True)
+    output_dir = Path(args.outdir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     combined_df = load_combined(args.insecure, args.defended)
     stats_df = compute_profile_stats(combined_df)
 
-    plot_attack_success(stats_df, outdir / "attack_success.png")
-    plot_leak_rate(stats_df, outdir / "leak_rate.png")
-    plot_unauthorized_write(stats_df, outdir / "unauthorized_write.png")
+    sorted_stats = stats_df.sort_values(["attacker_profile", "topology"])
+    print(sorted_stats)
 
-    print(stats_df)
+    stats_path = output_dir / "profile_stats.csv"
+    sorted_stats.to_csv(stats_path, index=False)
+
+    plot_attack_success(stats_df, str(output_dir / "attack_success_insecure_vs_defended.png"))
+    plot_leak_rate(stats_df, str(output_dir / "leak_rate_insecure_vs_defended.png"))
+    plot_unauthorized_write(
+        stats_df, str(output_dir / "unauthorized_write_insecure_vs_defended.png")
+    )
