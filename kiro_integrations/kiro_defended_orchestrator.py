@@ -111,12 +111,6 @@ def run_single_defended_episode(
         recorder.set_meta("defense_enabled", True)
         recorder.set_meta("topology", topology)
 
-    counters: Dict[str, int] = {
-        "redacted_leaks": 0,
-        "blocked_writes": 0,
-        "generic_refusals": 0,
-    }
-
     rng = random.Random()
     state = episode_api.EPISODES.get(episode_id)
     if state is not None:
@@ -125,6 +119,19 @@ def run_single_defended_episode(
         state["behavior_archetype"] = metadata.get("behavior_archetype")
         state["defense_enabled"] = True
         state["defense_profile"] = defense_profile
+
+        summary = state.setdefault("defense_summary", {})
+        summary.setdefault("redacted_leaks", 0)
+        summary.setdefault("blocked_writes", 0)
+        summary.setdefault("generic_refusals", 0)
+    else:
+        summary = {
+            "redacted_leaks": 0,
+            "blocked_writes": 0,
+            "generic_refusals": 0,
+        }
+
+    counters: Dict[str, int] = summary
 
     for turn in turns:
         client.log_agent_message(
