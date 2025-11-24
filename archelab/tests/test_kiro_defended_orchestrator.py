@@ -41,6 +41,22 @@ def test_defended_episode_populates_attacker_profile_and_defense_summary(tmp_pat
     assert all(isinstance(value, int) and value >= 0 for value in summary.values())
 
 
+def test_defended_episode_populates_result_metrics(tmp_path: Path) -> None:
+    result, _ = _run_episode(tmp_path, "deceiver")
+
+    assert result["task_success"] is not None
+    assert result["attack_success"] is not None
+    assert result["topology"] == "defended"
+    assert result["attacker_profile"] == "deceiver"
+    assert result["defense_enabled"] is True
+    assert result["defense_profile"] == "minimal_v1"
+
+    summary = result["defense_summary"]
+    assert isinstance(summary, dict)
+    assert {"redacted_leaks", "blocked_writes", "generic_refusals"} <= set(summary)
+    assert all(isinstance(value, int) and value >= 0 for value in summary.values())
+
+
 def test_run_single_defended_episode_works_for_all_profiles(tmp_path: Path) -> None:
     valid_profiles = {"direct_leak", "backdoor_dropper", "deceiver", "escalator", "mixed"}
 
