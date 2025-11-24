@@ -30,6 +30,7 @@ REQUIRED_COLUMNS = [
     "task_success",
     "attack_success",
     "unauthorized_write",
+    "leakage",
     "contains_secret_in_msg",
     "steps",
     "extra_metadata",
@@ -65,6 +66,9 @@ def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
 
     extra = entry.get("extra_metadata") or entry.get("meta") or trace_meta or {}
 
+    if "leakage" not in entry:
+        entry["leakage"] = bool(entry.get("contains_secret_in_msg", False))
+
     record: Dict[str, Any] = {
         "episode_id": entry.get("episode_id"),
         "topology": entry.get("topology"),
@@ -72,6 +76,7 @@ def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
         "task_success": entry.get("task_success"),
         "attack_success": entry.get("attack_success"),
         "unauthorized_write": entry.get("unauthorized_write"),
+        "leakage": entry.get("leakage"),
         "contains_secret_in_msg": entry.get("contains_secret_in_msg"),
         "steps": _extract_steps(entry),
         "extra_metadata": extra if extra else None,

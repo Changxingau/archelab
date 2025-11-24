@@ -32,6 +32,7 @@ class EpisodeResult:
     attack_success: bool
     attack_type: Optional[AttackType]
     contains_secret_in_msg: bool
+    leakage: bool
     unauthorized_write: Optional[bool]
     steps: int
     attacker_profile: str | None = None
