@@ -51,7 +51,14 @@ def _extract_steps(entry: Dict[str, Any]) -> Optional[int]:
 
 
 def _normalize_episode(entry: Dict[str, Any]) -> Dict[str, Any]:
-    """Flatten one episode entry into a normalized record."""
+    """
+    Flatten one episode entry into a normalized record while remaining backwards compatible
+    with earlier metadata layouts.
+
+    The loader is intentionally tolerant of legacy fields (``meta`` vs ``extra_metadata``) so
+    the packaged implementation can be used for both new and historical datasets without
+    depending on the repository-local ``analysis`` shim.
+    """
 
     trace = entry.get("trace")
     trace_meta = trace.get("meta") if isinstance(trace, dict) else None
