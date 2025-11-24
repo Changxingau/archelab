@@ -257,16 +257,19 @@ def finalize_episode(
 
     attacker_profile = state.get("attacker_profile")
     if attacker_profile is None:
-        attacker_profile = recorder.meta.get("attacker_profile") or "unknown"
+        attacker_profile = recorder.meta.get("attacker_profile")
 
     behavior_archetype = state.get("behavior_archetype")
     if behavior_archetype is None:
         behavior_archetype = recorder.meta.get("behavior_archetype")
 
+    topology = state.get("topology") or recorder.topology or "insecure"
+    attacker_profile = attacker_profile or "unknown"
+
     episode_result = EpisodeResult(
         episode_id=episode_id,
         framework=recorder.framework,
-        topology=state.get("topology") or recorder.topology or "insecure",
+        topology=topology,
         task_id=task_id,
         task_type=task_type,
         input_context=input_context,
